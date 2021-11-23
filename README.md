@@ -213,10 +213,10 @@ STV 0x00 // and this
 
 ### TODOs Bachelor Thesis
 
--Micro Instructions (NOP)
--New Opcodes?
--Memory description
--Extensions (Framebuffer?)
+- Micro Instructions (NOP)
+- New Opcodes?
+- Memory description
+- Extensions (Framebuffer?)
 
 
 

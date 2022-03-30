@@ -278,10 +278,10 @@ void mima_micro_instruction_step(mima_t *mima)
     {
         switch(mima->current_instruction.op_code)
         {
-        case AND:
-        case OR:
-        case XOR:
         case ADD:
+        case AND:
+        case IOR:
+        case XOR:
         case EQL:
             mima_instruction_common(mima);
             break;
@@ -309,9 +309,11 @@ void mima_micro_instruction_step(mima_t *mima)
         case RAR:
             mima_instruction_RAR(mima);
             break;
+        #ifdef EXT_ROTATE
         case RRN:
             mima_instruction_RRN(mima);
             break;
+        #endif
         default:
             log_warn("Invalid instruction - nr.%d - :(\n", mima->current_instruction.op_code);
             assert(0);
@@ -327,7 +329,7 @@ void mima_micro_instruction_step(mima_t *mima)
     }
 }
 
-// ADD, AND, OR, XOR, EQL
+// ADD, AND, IOR, XOR, EQL
 void mima_instruction_common(mima_t *mima)
 {
     switch(mima->processing_unit.MICRO_CYCLE)
@@ -362,21 +364,21 @@ void mima_instruction_common(mima_t *mima)
     {
         switch(mima->current_instruction.op_code)
         {
+        case ADD:
+            mima->processing_unit.Z = mima->processing_unit.X + mima->processing_unit.Y;
+            log_trace("%5s - %02d: X + Y -> Z \t\t\t 0x%08x + 0x%08x -> Z", mima_get_instruction_name(mima->current_instruction.op_code), mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
+            break;
         case AND:
             mima->processing_unit.Z = mima->processing_unit.X & mima->processing_unit.Y;
             log_trace("%5s - %02d: X & Y -> Z \t\t\t 0x%08x & 0x%08x -> Z", mima_get_instruction_name(mima->current_instruction.op_code), mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
             break;
-        case OR:
+        case IOR:
             mima->processing_unit.Z = mima->processing_unit.X | mima->processing_unit.Y;
             log_trace("%5s - %02d: X | Y -> Z \t\t\t 0x%08x | 0x%08x -> Z", mima_get_instruction_name(mima->current_instruction.op_code), mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
             break;
         case XOR:
             mima->processing_unit.Z = mima->processing_unit.X ^ mima->processing_unit.Y;
             log_trace("%5s - %02d: X ^ Y -> Z \t\t\t 0x%08x ^ 0x%08x -> Z", mima_get_instruction_name(mima->current_instruction.op_code), mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
-            break;
-        case ADD:
-            mima->processing_unit.Z = mima->processing_unit.X + mima->processing_unit.Y;
-            log_trace("%5s - %02d: X + Y -> Z \t\t\t 0x%08x + 0x%08x -> Z", mima_get_instruction_name(mima->current_instruction.op_code), mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
             break;
         case EQL:
             mima->processing_unit.Z = mima->processing_unit.X == mima->processing_unit.Y ? -1 : 0;
@@ -817,7 +819,7 @@ void mima_instruction_RAR(mima_t *mima)
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RAR - %02d: (X >>> 1) | (X << 31) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RAR - %02d: (X >> 1) | (X << 31) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:
@@ -831,7 +833,7 @@ void mima_instruction_RAR(mima_t *mima)
         assert(0);
     }
 }
-
+#ifdef EXT_ROTATE
 void mima_instruction_RRN(mima_t *mima)
 {
     switch(mima->processing_unit.MICRO_CYCLE)
@@ -851,10 +853,9 @@ void mima_instruction_RRN(mima_t *mima)
         log_trace("  RRN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
         break;
     case 10:
-        mima->processing_unit.Y = mima->control_unit.IR & 0x00FFFFFF;
-        mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x00FFFFFF);
-        log_trace("  RRN - %02d: IR & 0x00FFFFFF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x00FFFFFF);
-        mima->processing_unit.ALU = RRN;
+        mima->processing_unit.Y = mima->control_unit.IR & 0x000000FF;
+        mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x000000FF);
+        log_trace("  RRN - %02d: IR & 0x000000FF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x000000FF);
         mima->processing_unit.ALU = RRN;
         log_trace("  RRN - %02d: Set ALU to RRN", mima->processing_unit.MICRO_CYCLE);
         break;
@@ -865,7 +866,7 @@ void mima_instruction_RRN(mima_t *mima)
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RRN - %02d: (X >>> Y) | (X << (32-Y)) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RRN - %02d: (X >> Y) | (X << (32-Y)) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:
@@ -879,6 +880,7 @@ void mima_instruction_RRN(mima_t *mima)
         assert(0);
     }
 }
+#endif
 
 void mima_print_memory_at(mima_t *mima, mima_register address, uint32_t count)
 {
@@ -961,10 +963,12 @@ const char *mima_get_instruction_name(mima_instruction_type op_code)
         return "ADD";
     case AND:
         return "AND";
-    case OR:
-        return "OR ";
+    case IOR:
+        return "IOR";
     case XOR:
         return "XOR";
+    case EQL:
+        return "EQL";
     case LDV:
         return "LDV";
     case STV:
@@ -975,16 +979,16 @@ const char *mima_get_instruction_name(mima_instruction_type op_code)
         return "JMP";
     case JMN:
         return "JMN";
-    case EQL:
-        return "EQL";
     case HLT:
         return "HLT";
     case NOT:
         return "NOT";
     case RAR:
         return "RAR";
+    #ifdef EXT_ROTATE 
     case RRN:
         return "RRN";
+    #endif
     }
     return "INV";
 }

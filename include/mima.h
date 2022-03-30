@@ -23,7 +23,10 @@ typedef uint8_t     mima_bool;
 
 typedef enum _mima_instruction_type
 {
-    ADD = 0, AND, OR, XOR, LDV, STV, LDC, JMP, JMN, EQL, HLT = 0xF0, NOT, RAR, RRN
+    ADD = 0x0, AND, IOR, XOR,EQL, LDV, STV, LDC, JMP, JMN, HLT = 0xF0, NOT, RAR
+    #ifdef EXT_ROTATE
+        , RRN = 0xF3
+    #endif
 } mima_instruction_type;
 
 typedef struct _mima_instruction
@@ -116,7 +119,7 @@ mima_instruction mima_instruction_decode_mem(mima_word mem);
 
 mima_bool mima_sar_external(mima_t *mima);
 
-// ADD, AND, OR, XOR, EQL
+// ADD, AND, IOR, XOR, EQL
 void mima_instruction_common(mima_t *mima);
 void mima_instruction_LDV(mima_t *mima);
 void mima_instruction_STV(mima_t *mima);
@@ -126,7 +129,9 @@ void mima_instruction_JMP(mima_t *mima);
 void mima_instruction_JMN(mima_t *mima);
 void mima_instruction_NOT(mima_t *mima);
 void mima_instruction_RAR(mima_t *mima);
+#ifdef EXT_ROTATE
 void mima_instruction_RRN(mima_t *mima);
+#endif
 
 const char *mima_get_instruction_name(mima_instruction_type instruction);
 

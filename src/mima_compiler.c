@@ -56,64 +56,71 @@ mima_bool mima_string_starts_with_insensitive(const char *string, const char* pr
 mima_bool mima_string_to_op_code(const char *op_code_string, uint32_t *op_code)
 {
     uint32_t op_code_result = -1;
+    uint32_t value = 0xF;
+    if (!mima_string_to_number(op_code_string, &value)) value = 0xF;
 
     // thank god, this was done in sublime!
-    if (mima_string_starts_with_insensitive(op_code_string, "and"))
-    {
-        op_code_result = AND;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "add"))
+    //       recognize opcode as Mnemonics (like ADD, AND ...)     or as binary (like 0000, 11110001 ...) or as hex (like 0x3 ...) and decimal (like 3 ...)
+    if (mima_string_starts_with_insensitive(op_code_string, "add") || mima_string_starts_with_insensitive(op_code_string, "0000") || value == 0x0)
     {
         op_code_result = ADD;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "or"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "and") || mima_string_starts_with_insensitive(op_code_string, "0001") || value == 0x1)
     {
-        op_code_result = OR ;
+        op_code_result = AND;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "xor"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "ior") || mima_string_starts_with_insensitive(op_code_string, "0010") || value == 0x2)
+    {
+        op_code_result = IOR;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "xor") || mima_string_starts_with_insensitive(op_code_string, "0011") || value == 0x3)
     {
         op_code_result = XOR;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "ldv"))
-    {
-        op_code_result = LDV;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "stv"))
-    {
-        op_code_result = STV;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "ldc"))
-    {
-        op_code_result = LDC;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "jmp"))
-    {
-        op_code_result = JMP;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "jmn"))
-    {
-        op_code_result = JMN;
-    }
-    else if (mima_string_starts_with_insensitive(op_code_string, "eql"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "eql") || mima_string_starts_with_insensitive(op_code_string, "0100") || value == 0x4)
     {
         op_code_result = EQL;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "hlt"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "ldv") || mima_string_starts_with_insensitive(op_code_string, "0101") || value == 0x5)
+    {
+        op_code_result = LDV;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "stv") || mima_string_starts_with_insensitive(op_code_string, "0110") || value == 0x6)
+    {
+        op_code_result = STV;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "ldc") || mima_string_starts_with_insensitive(op_code_string, "0111") || value == 0x7)
+    {
+        op_code_result = LDC;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "jmp") || mima_string_starts_with_insensitive(op_code_string, "1000") || value == 0x8)
+    {
+        op_code_result = JMP;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "jmn") || mima_string_starts_with_insensitive(op_code_string, "1001") || value == 0x9)
+    {
+        op_code_result = JMN;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "hlt") || mima_string_starts_with_insensitive(op_code_string, "11110000") || value == 0xF0)
     {
         op_code_result = HLT;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "not"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "not") || mima_string_starts_with_insensitive(op_code_string, "11110001") || value == 0xF1)
     {
         op_code_result = NOT;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "rar"))
+    else if (mima_string_starts_with_insensitive(op_code_string, "rar") || mima_string_starts_with_insensitive(op_code_string, "11110010") || value == 0xF2)
     {
         op_code_result = RAR;
     }
-    else if (mima_string_starts_with_insensitive(op_code_string, "rrn"))
+    //Rotate Extension
+    #ifdef EXT_ROTATE
+    else if (mima_string_starts_with_insensitive(op_code_string, "rrn") || mima_string_starts_with_insensitive(op_code_string, "11110011") || value == 0xF3)
     {
         op_code_result = RRN;
     }
+    #endif
+
 
     if ((int)op_code_result == -1)
     {
@@ -218,10 +225,10 @@ void mima_compile_line(mima_t *mima, char* line, size_t* line_number, size_t* me
         }
 
         // classify first string, possible things:
-        // op code          like: ADD AND OR ...
+        // opcode           like: ADD, AND, IOR, 0000, 11110001, 0xF1, 8 ...
         // label            like: :Label1, :START, :loop (will be ignored, we have already collected them while scanning) ...
-        // address + value  like: 0xF1, 0xFA8 ... = define storage
-        // breakpoint       like: b or B
+        // address + value  like: 0xF11, 0xFA8 ... = define storage, unless address resembles an opcode
+        // breakpoint       like: B
 
         // string1 is op code
         // -> string2 will be value or empty (NOT, HLT, RAR)

@@ -1,6 +1,13 @@
 // This is a comment
 :START 				// Labels start with a ':' and are limited to 31 chars
-LDV 0xFF1			// Load value from defined storage (last line)
+LDV 0xFF1
+LDC 0x2
+STV 0x3
+0x0 0x1
+0000 7
+0010 8
+LDV 42
+0001 23			// Load value from defined storage (last line)
 NOT 
 # this is also a comment
 STV 0x00

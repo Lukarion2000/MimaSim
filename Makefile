@@ -2,6 +2,11 @@ CC = gcc
 CFLAGS = -c -Wall -Wextra -O3 -Iinclude
 LD = $(CC)
 
+# Extensions
+ifeq ($(EXT_ROTATE),1)
+	CFLAGS += -DEXT_ROTATE
+endif
+
 UNAME_S := $(shell uname -s)
 
 TARGET = MimaSim

@@ -309,12 +309,26 @@ void mima_micro_instruction_step(mima_t *mima)
         case RAR:
             mima_instruction_RAR(mima);
             break;
+
+    // Insert switch case for New Extensions here:
+        // Rotate Extension
         #ifdef EXT_ROTATE
         case RRN:
             mima_instruction_RRN(mima);
             break;
         #endif
+        // Displacemnet Jump Extension
+        #ifdef EXT_DJUMP
+        case DJP:
+            mima_instruction_DJP(mima);
+            break;
+        case DJN:
+            mima_instruction_DJN(mima);
+            break;
+        #endif
         default:
+    // End of Extension switch cases
+
             log_warn("Invalid instruction - nr.%d - :(\n", mima->current_instruction.op_code);
             assert(0);
         }
@@ -819,7 +833,7 @@ void mima_instruction_RAR(mima_t *mima)
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RAR - %02d: (X >> 1) | (X << 31) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RAR - %02d: (X >>> 1) | (X << 31) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:
@@ -833,6 +847,9 @@ void mima_instruction_RAR(mima_t *mima)
         assert(0);
     }
 }
+
+// Insert the Execute Cycles of a New Extension here:
+    //Rotate Extension
 #ifdef EXT_ROTATE
 void mima_instruction_RRN(mima_t *mima)
 {
@@ -866,7 +883,7 @@ void mima_instruction_RRN(mima_t *mima)
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RRN - %02d: (X >> Y) | (X << (32-Y)) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RRN - %02d: (X >>> Y) | (X << (32-Y)) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:
@@ -881,6 +898,122 @@ void mima_instruction_RRN(mima_t *mima)
     }
 }
 #endif
+
+    //Displacement Jump Extension
+#ifdef EXT_DJUMP
+void mima_instruction_DJP(mima_t *mima)
+{
+    switch(mima->processing_unit.MICRO_CYCLE)
+    {
+    case 6:
+        log_trace("  DJP - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 7:
+        mima->processing_unit.X = mima->control_unit.IAR;
+        mima_wasm_register_transfer(mima, X, IAR, mima->control_unit.IAR);
+        log_trace("  DJP - %02d: IAR -> X \t\t\t 0x%08x -> X \t", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IAR);
+        break;
+    case 8:
+        log_trace("  DJP - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 9:
+        log_trace("  DJP - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 10:
+        mima->processing_unit.Y = mima->control_unit.IR & 0x00FFFFFF;
+        mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x00FFFFFF);
+        log_trace("  DJP - %02d: IR & 0x00FFFFFF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x00FFFFFF);
+        mima->processing_unit.ALU = ADD;
+        log_trace("  DJP - %02d: Set ALU to ADD", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 11:
+    {
+        mima->processing_unit.Z = mima->processing_unit.X + mima->processing_unit.Y;
+        mima_wasm_register_transfer(mima, Z, ALU, mima->processing_unit.Z);
+        log_trace("  DJP - %02d: X + Y -> Z \t\t\t 0x%08x + 0x%08x -> Z",  mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
+        break;
+    }
+    case 12:
+        mima->control_unit.IAR = mima->processing_unit.Z;
+        mima_wasm_register_transfer(mima, IAR, Z, mima->processing_unit.Z);
+        log_trace("  DJP - %02d: Z -> IAR \t\t\t 0x%08x -> IAR", mima->processing_unit.MICRO_CYCLE, mima->processing_unit.Z);        log_info("  DJP - ACC = 0x%08x", mima->processing_unit.ACC);
+        break;
+    default:
+        log_warn("Invalid micro cycle. Must be between 6-12, was %d :(\n", mima->processing_unit.MICRO_CYCLE);
+        assert(0);
+    }
+}
+
+void mima_instruction_DJN(mima_t *mima)
+{
+    switch(mima->processing_unit.MICRO_CYCLE)
+    {
+    case 6:
+        log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 7:
+        if((int32_t)mima->processing_unit.ACC < 0)
+        {
+            mima->processing_unit.X = mima->control_unit.IAR;
+            mima_wasm_register_transfer(mima, X, IAR, mima->control_unit.IAR);
+            log_trace("  DJN - %02d: IAR -> X \t\t\t 0x%08x -> X \t", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IAR);
+        }
+        else
+        {
+            log_trace("  DJn - %02d: ACC = 0x%08x - No Jump taken", mima->processing_unit.MICRO_CYCLE, mima->processing_unit.ACC, mima->control_unit.IR & 0x00FFFFFF);
+        }
+    case 8:
+        log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 9:
+        log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        break;
+    case 10:
+        if((int32_t)mima->processing_unit.ACC < 0)
+        {
+            mima->processing_unit.Y = mima->control_unit.IR & 0x00FFFFFF;
+            mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x00FFFFFF);
+            log_trace("  DJN - %02d: IR & 0x00FFFFFF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x00FFFFFF);
+            mima->processing_unit.ALU = ADD;
+            log_trace("  DJN - %02d: Set ALU to ADD", mima->processing_unit.MICRO_CYCLE);
+        }
+        else
+        {
+            log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        }
+        break;
+    case 11:
+        if((int32_t)mima->processing_unit.ACC < 0)
+        {
+            mima->processing_unit.Z = mima->processing_unit.X + mima->processing_unit.Y;
+            mima_wasm_register_transfer(mima, Z, ALU, mima->processing_unit.Z);
+            log_trace("  DJN - %02d: X + Y -> Z \t\t\t 0x%08x + 0x%08x -> Z",  mima->processing_unit.MICRO_CYCLE, mima->processing_unit.X, mima->processing_unit.Y);
+        }
+        else
+        {
+            log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        }
+        break;
+    
+    case 12:
+        if((int32_t)mima->processing_unit.ACC < 0)
+        {
+            mima->control_unit.IAR = mima->processing_unit.Z;
+            mima_wasm_register_transfer(mima, IAR, Z, mima->processing_unit.Z);
+            log_trace("  DJN - %02d: Z -> IAR \t\t\t 0x%08x -> IAR", mima->processing_unit.MICRO_CYCLE, mima->processing_unit.Z);        log_info("  DJP - ACC = 0x%08x", mima->processing_unit.ACC);
+        }
+        else
+        {
+            log_trace("  DJN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
+        }
+        break;
+    default:
+        log_warn("Invalid micro cycle. Must be between 6-12, was %d :(\n", mima->processing_unit.MICRO_CYCLE);
+        assert(0);
+    }
+}
+#endif
+// End of Extension Execute Cycles
 
 void mima_print_memory_at(mima_t *mima, mima_register address, uint32_t count)
 {
@@ -985,10 +1118,22 @@ const char *mima_get_instruction_name(mima_instruction_type op_code)
         return "NOT";
     case RAR:
         return "RAR";
+
+// Insert switch case for a New Extension here:
+    // Rotate Extension
     #ifdef EXT_ROTATE 
     case RRN:
         return "RRN";
     #endif
+    // Displacemnet Jump Extension
+    #ifdef EXT_DJUMP 
+    case DJP:
+        return "DJP";
+    case DJN:
+        return "DJN";
+    #endif
+// End of Extension switch cases
+    
     }
     return "INV";
 }

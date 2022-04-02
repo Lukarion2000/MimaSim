@@ -113,14 +113,27 @@ mima_bool mima_string_to_op_code(const char *op_code_string, uint32_t *op_code)
     {
         op_code_result = RAR;
     }
+
+// Insert the Opcode Recognition for a New Extension here:    
     //Rotate Extension
     #ifdef EXT_ROTATE
-    else if (mima_string_starts_with_insensitive(op_code_string, "rrn") || mima_string_starts_with_insensitive(op_code_string, "11110011") || value == 0xF3)
+    else if (mima_string_starts_with_insensitive(op_code_string, "rrn") || mima_string_starts_with_insensitive(op_code_string, "11111000") || value == 0xF8)
     {
         op_code_result = RRN;
     }
     #endif
-
+    //Displacement Jump Extension
+    #ifdef EXT_DJUMP
+    else if (mima_string_starts_with_insensitive(op_code_string, "djp") || mima_string_starts_with_insensitive(op_code_string, "11111001") || value == 0xF9)
+    {
+        op_code_result = DJP;
+    }
+    else if (mima_string_starts_with_insensitive(op_code_string, "djn") || mima_string_starts_with_insensitive(op_code_string, "11111010") || value == 0xFA)
+    {
+        op_code_result = DJN;
+    }
+    #endif    
+// End of Extension Opcode Recognition
 
     if ((int)op_code_result == -1)
     {

@@ -2,10 +2,19 @@ CC = gcc
 CFLAGS = -c -Wall -Wextra -O3 -Iinclude
 LD = $(CC)
 
-# Extensions
+# Insert Flags for a New Extension here:
+
+	# Rotate Extension
 ifeq ($(EXT_ROTATE),1)
 	CFLAGS += -DEXT_ROTATE
 endif
+
+	# Displacement Jump Extension
+ifeq ($(EXT_DJUMP),1)
+	CFLAGS += -DEXT_DJUMP
+endif
+
+# End of Extension Flags
 
 UNAME_S := $(shell uname -s)
 

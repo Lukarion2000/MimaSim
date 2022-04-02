@@ -24,9 +24,20 @@ typedef uint8_t     mima_bool;
 typedef enum _mima_instruction_type
 {
     ADD = 0x0, AND, IOR, XOR,EQL, LDV, STV, LDC, JMP, JMN, HLT = 0xF0, NOT, RAR
+    
+// Insert Opcodes for a New Extension here
+    // Rotate Extension
     #ifdef EXT_ROTATE
-        , RRN = 0xF3
+        , RRN = 0xF8
     #endif
+
+    // Displacement Jump Extension
+    #ifdef EXT_DJUMP
+        , DJP = 0xF9
+        , DJN = 0xFA
+    #endif
+// End of Extension Enum
+
 } mima_instruction_type;
 
 typedef struct _mima_instruction
@@ -129,9 +140,19 @@ void mima_instruction_JMP(mima_t *mima);
 void mima_instruction_JMN(mima_t *mima);
 void mima_instruction_NOT(mima_t *mima);
 void mima_instruction_RAR(mima_t *mima);
+
+// Insert Instructions of a New Extensions here: 
+    // RotateExtension
 #ifdef EXT_ROTATE
 void mima_instruction_RRN(mima_t *mima);
 #endif
+    // Displacement Jump Extension
+#ifdef EXT_DJUMP
+void mima_instruction_DJP(mima_t *mima);
+void mima_instruction_DJN(mima_t *mima);
+#endif
+// End of Extension Instruc
+
 
 const char *mima_get_instruction_name(mima_instruction_type instruction);
 

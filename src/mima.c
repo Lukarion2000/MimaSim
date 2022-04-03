@@ -867,20 +867,20 @@ void mima_instruction_RRN(mima_t *mima)
         log_trace("  RRN - %02d: empty", mima->processing_unit.MICRO_CYCLE);
         break;
     case 10:
-        mima->processing_unit.Y = mima->control_unit.IR & 0x000000FF;
-        mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x000000FF);
-        log_trace("  RRN - %02d: IR & 0x000000FF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x000000FF);
+        mima->processing_unit.Y = mima->control_unit.IR & 0x00FFFFFF;
+        mima_wasm_register_transfer(mima, Y, IR, mima->control_unit.IR & 0x00FFFFFF);
+        log_trace("  RRN - %02d: IR & 0x00FFFFFF -> Y \t 0x%08x -> Y", mima->processing_unit.MICRO_CYCLE, mima->control_unit.IR & 0x00FFFFFF);
         mima->processing_unit.ALU = RRN;
         log_trace("  RRN - %02d: Set ALU to RRN", mima->processing_unit.MICRO_CYCLE);
         break;
     case 11:
     {
-        int32_t shifted = mima->processing_unit.X >> mima->processing_unit.Y;
-        int32_t rotated = mima->processing_unit.X << (32 - mima->processing_unit.Y);
+        int32_t shifted = mima->processing_unit.X >> (mima->processing_unit.Y & 0x000000FF);
+        int32_t rotated = mima->processing_unit.X << (32 - (mima->processing_unit.Y & 0x000000FF));
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RRN - %02d: (X >>> Y) | (X << (32-Y)) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RRN - %02d: (X >>> (Y%32)) | (X << (32-(Y%32))) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:

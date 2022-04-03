@@ -819,9 +819,6 @@ void mima_instruction_RAR(mima_t *mima)
         log_trace("  RAR - %02d: empty", mima->processing_unit.MICRO_CYCLE);
         break;
     case 10:
-        mima->processing_unit.Y = mima->processing_unit.ONE;
-        mima_wasm_register_transfer(mima, Y, ONE, 1);
-        log_trace("  RAR - %02d: ONE -> Y", mima->processing_unit.MICRO_CYCLE);
         mima->processing_unit.ALU = RAR;
         mima_wasm_register_transfer(mima, ALU, IMMEDIATE, RAR);
         log_trace("  RAR - %02d: Set ALU to RAR", mima->processing_unit.MICRO_CYCLE);

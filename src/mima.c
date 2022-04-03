@@ -880,7 +880,7 @@ void mima_instruction_RRN(mima_t *mima)
         int32_t combined = shifted | rotated;
         mima->processing_unit.Z = combined;
         mima_wasm_register_transfer(mima, Z, ALU, combined);
-        log_trace("  RRN - %02d: (X >>> (Y%32)) | (X << (32-(Y%32))) -> Z", mima->processing_unit.MICRO_CYCLE);
+        log_trace("  RRN - %02d: (X >>> (Y&0xFF)) | (X << (32-(Y&0xFF))) -> Z", mima->processing_unit.MICRO_CYCLE);
         break;
     }
     case 12:

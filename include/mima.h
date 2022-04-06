@@ -142,7 +142,7 @@ void mima_instruction_NOT(mima_t *mima);
 void mima_instruction_RAR(mima_t *mima);
 
 // Insert Instructions of a New Extensions here: 
-    // RotateExtension
+    // Rotate Extension
 #ifdef EXT_ROTATE
 void mima_instruction_RRN(mima_t *mima);
 #endif
@@ -151,7 +151,7 @@ void mima_instruction_RRN(mima_t *mima);
 void mima_instruction_DJP(mima_t *mima);
 void mima_instruction_DJN(mima_t *mima);
 #endif
-// End of Extension Instruc
+// End of Extension Instructions
 
 
 const char *mima_get_instruction_name(mima_instruction_type instruction);

@@ -61,29 +61,31 @@ q.............quits mima
 |----------|--------|--------------------------------------|-------------------------------------------------------------------------------------------|
 | ADD a    | 0x0    | ACC ← ACC + mem[a]                   | Add value at address a to Accumulator                                                     |
 | AND a    | 0x1    | ACC ← ACC & mem[a]                   | Link value at address a to Accumulator by bitwise AND                                     |
-| OR a     | 0x2    | ACC ← ACC \| mem[a]                  | Link value at address a to Accumulator by bitwise OR                                      |
+| IOR a    | 0x2    | ACC ← ACC \| mem[a]                  | Link value at address a to Accumulator by bitwise OR                                      |
 | XOR a    | 0x3    | ACC ← ACC ^ mem[a]                   | Link value at address a to Accumulator by bitwise XOR                                     |
-| LDV a    | 0x4    | ACC ← mem[a]                         | Load value at address a into Accumulator                                                  |
-| STV a    | 0x5    | mem[a] ← ACC                         | Store value in Accumulator at address a                                                   |
-| LDC v    | 0x6    | ACC ← v                              | Load value v into Accumulator                                                             |
-| JMP a    | 0x7    | IAR ← a                              | Continue program execution at address a                                                   |
-| JMN a    | 0x8    | IAR ← (ACC < 0) ? a : ++IAR          | Continue program execution at address a if value in Accumulator is negative               |
-| EQL a    | 0x9    | ACC ← (ACC == mem[a]) ? -1 : 0       | Set Accumulator to -1 if value in Accumulator is equal to value at address a, 0 otherwise |
-| HLT      | 0xf0   | Halt                                 | Stop program execution                                                                    |
-| NOT      | 0xf1   | ACC ← ~ACC                           | Negate value in Accumulator                                                               |
-| RAR      | 0xf2   | ACC ← (ACC << 31) \| (ACC >>> 1)     | Rotate value in Accumulator right by 1 bit                                                
+| EQL a    | 0x4    | ACC ← (ACC == mem[a]) ? -1 : 0       | Set Accumulator to -1 if value in Accumulator is equal to value at address a, 0 otherwise |
+| LDV a    | 0x5    | ACC ← mem[a]                         | Load value at address a into Accumulator                                                  |
+| STV a    | 0x6    | mem[a] ← ACC                         | Store value in Accumulator at address a                                                   |
+| LDC v    | 0x7    | ACC ← v                              | Load value v into Accumulator                                                             |
+| JMP a    | 0x8    | IAR ← a                              | Continue program execution at address a                                                   |
+| JMN a    | 0x9    | IAR ← (ACC < 0) ? a : IAR            | Continue program execution at address a if value in Accumulator is negative               |
+| HLT      | 0xF0   | Halt                                 | Stop program execution                                                                    |
+| NOT      | 0xF1   | ACC ← ~ACC                           | Negate value in Accumulator                                                               |
+| RAR      | 0xF2   | ACC ← (ACC << 31) \| (ACC >>> 1)     | Rotate value in Accumulator right by 1 bit                                                
 ## Mima Assembler Syntax
 
 ##### Mnemoic + Value/Address
 
-- always use mnemonics, op codes are not supported (yet)
+- opcodes van be written as hex, decimal or binary (all 4 or 8 Bits) or as mnemonic
 - values can be written hex (e.g. 0x1A4) or decimal
 
 ```
-LDC   41
-ADD   0xFF1
-STV   0xFF1
-0xFF1 0x1
+LDC       41          // mnemonic
+0         0xFF1       // decimal (ADD)
+0x6       0xFF1       // hex (STV)
+11110010              // binary (RAR)
+
+0xFF1     0x1         // hex not resembling an opcode: define memory
 ```
 
 ##### Labels + Jumps
@@ -115,7 +117,7 @@ STV 0xF1
 
 ##### Define storage
 
-- you can define the value at a specific memory address
+- you can define the value at a specific memory address as long as it doesn't represent an op code
 - the value can be a variable or an instruction
 
 ```
@@ -197,7 +199,57 @@ ADD 0x01 #you can also do that
 STV 0x00 // and this
 ```
 
-### TODOs/Future Work
+## Mima Extensions
+
+So far there have been added 2 extension with a total of 3 instrictions. They are not usable for the web mima (yet).
+Extension can be made usable by setting their macro to 1 in the make build process. The MimaSim cannot add or remove extensions while running.
+The 2 Extensions can also be added simultaneously by setting both their macros to 1.
+Once build with the extension the MimaSim can use the extension's instructions.
+
+#### Rotate Extension
+
+| Mnemonic | Opcode | Pseudo code                          | Description                                                                               |
+|----------|--------|--------------------------------------|-------------------------------------------------------------------------------------------|
+| RRN n    | 0xF8   | ACC ← (ACC << (32 - (n & 0xFF) ) )   | Rotate value in Accumulator right by 1 bit n times                                        |
+
+```bash
+$make EXT_ROTATE=1
+```
+
+#### Displacement Jump Extension
+
+| Mnemonic | Opcode | Pseudo code                          | Description                                                                               |
+|----------|--------|--------------------------------------|-------------------------------------------------------------------------------------------|
+| DJP n    | 0xFE   | IAR ← IAR + n                        | Continue program execution at address IAR + n                                             |
+| DJN n    | 0xFD   | IAR ← (ACC < 0) ? (IAR + n) : IAR    | Continue program execution at address IAR + n if value in Accumulator is negative         |       
+
+```bash
+$make EXT_DJUMP=1
+```
+
+### Adding new Extensions
+
+New instructions and/or extensions can be included by adding their corresponding code in [Makefile](https://github.com/Lukarion2000/MimaSim/blob/master/Makefile), [include/mima.h](https://github.com/Lukarion2000/MimaSim/blob/master/include/mima.h), [src/mima_compiler.c](https://github.com/Lukarion2000/MimaSim/blob/master/src/mima_compiler.c) and [src/mima.c](https://github.com/Lukarion2000/MimaSim/blob/master/src/mima.c).
+For a new instruction to function the main importance lies within the implementation of the pseudocode within the execute cycle.
+The cycle does not have to be 100% accurate for it to work.
+(You are allowed to cheat a bit by adding mostly empty cycles as long as it adds up in the end.)
+The parts of the code where new extension code can be added are marked as shown below:
+
+```C
+// Insert Instructions of a New Extensions here: 
+    // Rotate Extension
+#ifdef EXT_ROTATE
+void mima_instruction_RRN(mima_t *mima);
+#endif
+    // Displacement Jump Extension
+#ifdef EXT_DJUMP
+void mima_instruction_DJP(mima_t *mima);
+void mima_instruction_DJN(mima_t *mima);
+#endif
+// End of Extension Instructions
+```
+
+## TODOs/Future Work
 
 - better debugging tools for web and command line
     - track specific memory address(es)
@@ -209,15 +261,6 @@ STV 0x00 // and this
 - web UI redesign
 - user guide/documentation on web interface
 - mouse over infos for components in web interface/mima graphic
-
-
-### TODOs Bachelor Thesis
-
-- Micro Instructions (NOP)
-- New Opcodes?
-- Memory description
-- Extensions (Framebuffer?)
-
 
 
 
